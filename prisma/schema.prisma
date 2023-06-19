@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  Int        @id @default(autoincrement())
+  email               String     @unique
+  password            String
+  isSocialLogin       Boolean?   @default(false)
+  username            String?    @unique
+  fullName            String?
+  description         String?
+  profileImage        String?
+  isProfileInfoSet    Boolean?   @default(false)
+  isActive            Boolean?   @default(true)
+  isDeleted           Boolean?   @default(false)
+  createdAt           DateTime   @default(now())
+  resetPasswordToken  String?    @unique
+  resetPasswordExpire String?
+  facebook            String?
+  Twitter             String?
+  Instagram           String?
+  Youtube             String?
+  Country             String?
+  State               String?
+  Subscribed          Boolean    @default(false)
+  role                Role?
+  posts               Posts[]
+  subscription        subscription[]
+  reviews             Reviews[]
+  messagesSent        Message[]  @relation("sentMessages")
+  messagesReceived    Message[]  @relation("receivedMessages")
+  tierCreatedBy       Tier[]     @relation("tierCreatedBy")
+  Category            Category[]
+  ProjectOwner        Project[]  @relation("projectOwener")
+  planOwner           Plan[]     @relation("planOwner")
+  rewardCreated       Reward[]
+  payment             Payment[]
+}
+
+model Posts {
+  id           Int       @id @default(autoincrement())
+  title        String
+  description  String
+  categoryName Category  @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+  features     String?
+  fileType     FileType
+  price        Int
+  fileLink     String?
+  category     String
+  shortDesc    String
+  createdAt    DateTime  @default(now())
+  image        String?
+  createdBy    User      @relation(fields: [userId], references: [id])
+  userId       Int       @default(0)
+  subscription       subscription[]
+  reviews      Reviews[]
+  tier         Tier      @relation(fields: [tierId], references: [id])
+  tierId       Int
+}
+
+model Tier {
+  id          Int     @id @default(autoincrement())
+  name        String
+  price       Int     @default(0)
+  trial       Int     @default(7)
+  description String?
+  createdAt           DateTime   @default(now())
+  createdBy   User    @relation("tierCreatedBy", fields: [userId], references: [id])
+  userId      Int
+  posts       Posts[]
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  createdBy   User      @relation(fields: [userId], references: [id])
+  userId      Int
+  createdAt           DateTime   @default(now())
+  posts       Posts[]
+  category    Project[]
+}
+
+model subscription {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  buyer         User     @relation(fields: [buyerId], references: [id])
+  buyerId       Int
+  paymentIntent String   @unique
+  isCompleted   Boolean  @default(false)
+  post          Posts    @relation(fields: [postId], references: [id])
+  postId        Int
+  price         Int
+}
+
+model Reviews {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  rating     Int
+  reviewText String?
+  post       Posts    @relation(fields: [postId], references: [id])
+  postId     Int
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+  reviewerId Int
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  text        String
+  createdAt   DateTime @default(now())
+  isRead      Boolean  @default(false)
+  sender      User     @relation("sentMessages", fields: [senderId], references: [id])
+  senderId    Int
+  recipient   User     @relation("receivedMessages", fields: [recipientId], references: [id])
+  recipientId Int
+}
+
+enum Role {
+  CREATOR
+  SUPPORTER
+}
+
+enum FileType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+model Project {
+  id         Int      @id @default(autoincrement())
+  content    String
+  image      String?
+  createdAt   DateTime @default(now())
+  plan       Plan[]
+  user       User     @relation("projectOwener", fields: [userId], references: [id])
+  userId     Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  goal       Int
+  endDate    DateTime @default(now())
+  backersNum Int      @default(0)
+  balance    Int      @default(0)
+  Reward     Reward[]
+}
+
+model Plan {
+  id          Int      @id @default(autoincrement())
+  title       String
+  subtitle    String
+  content     String
+  createdAt   DateTime @default(now())
+  price       Int
+  estDelivery DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id])
+  projectId   Int
+  user        User     @relation("planOwner", fields: [userId], references: [id])
+  userId      Int
+  payment      Payment[]
+}
+
+model Reward {
+  id          Int        @id @default(autoincrement())
+  title       String
+  subtitle    String
+  content     String
+  price       Int
+  createdAt   DateTime @default(now())
+  estDelivery DateTime   @default(now())
+  project     Project?   @relation(fields: [projectId], references: [id])
+  projectId   Int?
+  user        User       @relation(fields: [createdBy], references: [id])
+  createdBy   Int
+  material    Material[]
+}
+
+model Material {
+  id       Int     @id @default(autoincrement())
+  name     String
+  createdAt   DateTime @default(now())
+  fileLink String
+  reward   Reward? @relation(fields: [rewardId], references: [id])
+  rewardId Int?
+}
+
+model Payment {
+  id Int @id @default(autoincrement())
+  buyer   User @relation(fields: [buyerId], references: [id])
+  buyerId Int
+  plan     Plan @relation(fields: [planId], references: [id])
+  planId   Int
+  paymentIntent    String  @unique
+  isCompleted Boolean @default(false)
+  price     Int
+  createdAt   DateTime @default(now())
+}
